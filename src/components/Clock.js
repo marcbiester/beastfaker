@@ -18,7 +18,14 @@ function createBlock(holds, times) {
     };
 
     const block = {};
-    let counter = 0;
+    let counter = 1;
+    
+    //Dummy entry, only color information ist necessary for "Get Ready" Phase, Text and duration are taken from Clock-Object ini
+    block[0] = {
+        duration: 0,
+        color: colors.break,
+        holdName: 'Dummy'
+    }
 
     for(let session = 1; session <= times.sessions; session++) {
         for(let hold = 0; hold < Object.keys(holds).length; hold++){
@@ -90,7 +97,6 @@ class Clock extends React.Component {
     gogogo() {
         if(!this.timerID){    
             if(Object.keys(this.state.holds).length > 0) {
-                console.log('im in');
                 this.blocks = createBlock(this.state.holds);
                 this.timerID = setInterval(() => this.tick(), 1000);
             }
@@ -105,9 +111,10 @@ class Clock extends React.Component {
     
     tick() {
         let secToGo = this.state.remainingSeconds - 1;
-        let newBlock = 0
-        if (secToGo < 0 && this.state.currentBlock < Object.keys(this.blocks).length) {
-            (this.state.currentBlock > 0) ? newBlock = this.state.currentBlock + 1 : 
+        let newBlock = 0;
+        if (secToGo < 0 
+            && this.state.currentBlock < Object.keys(this.blocks).length) {
+            newBlock = this.state.currentBlock + 1;
             this.setState({
                 currentBlock: newBlock,
                 currentHold: this.blocks[newBlock].holdName
@@ -116,7 +123,7 @@ class Clock extends React.Component {
         }
         this.setState({
             remainingSeconds: secToGo,
-            currenHold: this.blocks[this.state.currentBlock].holdName})
+            currenHold: this.blocks[newBlock].holdName})
 
     }
 
