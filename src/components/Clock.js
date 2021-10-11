@@ -5,11 +5,6 @@ import Select from 'react-select'
 
 
 function createBlock(holds, times) {
-    if(!times) {
-        times = {sessions: 2, hangs:2, hangTime: 7, relaxTime: 3, breakTime: 150, 
-        bigBreakTime: 300};
-    };
-
     const colors = {
         power: '#E15566',
         relax: '#A2F7B5',
@@ -67,8 +62,7 @@ function createBlock(holds, times) {
 class Clock extends React.Component {
     constructor(props) {
         super(props)
-        this.times = {sessions: 2, hangs:5, hangTime: 7, relaxTime: 3, breakTime: 150, 
-            bigBreakTime: 300};
+        this.ping = new Audio('./ping.mp3');
         this.state = {
             date: new Date(),
             remainingSeconds: 10,
@@ -81,13 +75,16 @@ class Clock extends React.Component {
                 {value:3, label:'2-Finger-Edge'},
                 {value:5, label:'3-Finger-Edge'},
                 {value:6, label:'4-Finger-Edge'},
-            ]
+            ],
+            times: {sessions: 2, hangs:5, hangTime: 7, relaxTime: 3, breakTime: 150, 
+                bigBreakTime: 300}
         };
         this.ff = this.ff.bind(this);
         this.rev = this.rev.bind(this);
         this.gogogo = this.gogogo.bind(this);
         this.headerTime = this.headerTime.bind(this);
         this.handleSelectedHoldsChange = this.handleSelectedHoldsChange.bind(this);
+        this.handleInputChange = this.handleInputChange.bind(this);
     }
 
     componentDidMount() {
@@ -97,7 +94,7 @@ class Clock extends React.Component {
     gogogo() {
         if(!this.timerID){    
             if(Object.keys(this.state.holds).length > 0) {
-                this.blocks = createBlock(this.state.holds);
+                this.blocks = createBlock(this.state.holds, this.state.times);
                 this.timerID = setInterval(() => this.tick(), 1000);
             }
         }
@@ -105,25 +102,34 @@ class Clock extends React.Component {
     }
 
     componentWillUnmount() {
+        if(!this.timerID) {
             clearInterval(this.timerID)
+        }
     }
 
     
     tick() {
         let secToGo = this.state.remainingSeconds - 1;
         let newBlock = 0;
+        if (secToGo === 0 && this.state.currentBlock === (Object.keys(this.blocks).length -1)) {
+            clearInterval(this.timerID)
+            this.timerID = 0;
+        }
         if (secToGo < 0 
-            && this.state.currentBlock < Object.keys(this.blocks).length) {
+            && this.state.currentBlock < (Object.keys(this.blocks).length - 1)) {
             newBlock = this.state.currentBlock + 1;
             this.setState({
                 currentBlock: newBlock,
                 currentHold: this.blocks[newBlock].holdName
             });
             secToGo = this.blocks[this.state.currentBlock].duration;
+            this.ping.play();
+
         }
         this.setState({
             remainingSeconds: secToGo,
-            currenHold: this.blocks[newBlock].holdName})
+            currenHold: this.blocks[newBlock].holdName});
+
 
     }
 
@@ -174,7 +180,54 @@ class Clock extends React.Component {
             )
     }
 
+
+    handleInputChange(evt) {
+        let times = this.state.times;
+        times[evt.target.name] = evt.target.value;
+        this.setState({times:times});
+        console.log(this.state.times)
+    }
+
+    inputField(label,name,value,onChange, isTime=true){
+        const secLabel =  <div className="input-group-append"><span className="input-group-text">sec</span>
+    </div>
+        return(
+        <div className="input-group mb-3">
+            <div className="input-group-prepend w-50">
+                <span className="input-group-text w-100">{label}</span>
+            </div>
+            <input 
+                type="text" 
+                className="form-control" 
+                value={value}
+                name={name}
+                onChange={onChange}
+                />
+                {isTime ? secLabel : ''}
+        </div>
+        )
+    }
+
+    inputFields() {
+/*         if(!times) {
+            times = {sessions: 2, hangs:2, hangTime: 7, relaxTime: 3, breakTime: 150, 
+            bigBreakTime: 300};
+        }; */
+        return(
+            <div>
+                {this.inputField('Sessions','sessions',this.state.times.sessions, this.handleInputChange, false)}
+                {this.inputField('Hangs','hangs',this.state.times.hangs, this.handleInputChange, false)}
+                {this.inputField('Hang-Time','hangTime',this.state.times.hangTime, this.handleInputChange)}
+                {this.inputField('Between-Hangs-Break','relaxTime',this.state.times.relaxTime, this.handleInputChange)}
+                {this.inputField('Between-Holds-Time','breakTime',this.state.times.breakTime, this.handleInputChange)}
+                {this.inputField('Between-Sessions-Time','bigBreakTime',this.state.times.bigBreakTime, this.handleInputChange)}
+
+            </div>
+        )
+    }
+
     headerTime(){
+
         if(this.blocks) {
             return (
                 <div style = {{backgroundColor:this.blocks[this.state.currentBlock].color}}>
@@ -205,11 +258,14 @@ class Clock extends React.Component {
             {this.headerTime()}
             <div className="btn btn-group btn-block" >
                 <Button variant="primary" size="lg" onClick={this.gogogo}>Go</Button>
-                <Button variant="secondary" size="lg" onClick={this.rev}>rev</Button>
-                <Button variant="primary" size="lg" onClick={this.ff}>ff</Button>
+                <Button variant="secondary" size="lg" onClick={this.rev}>Back</Button>
+                <Button variant="primary" size="lg" onClick={this.ff}>Skip</Button>
             </div>
             <br />
+            <h3>Settings</h3>
             {this.selectHolds()}
+            <br />
+            {this.inputFields()}
         </div>
         )
     }
